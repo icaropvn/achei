@@ -1,0 +1,15 @@
+CREATE TABLE institutions (id text PRIMARY KEY,name text NOT NULL,unit text NOT NULL,city text NOT NULL,initials text NOT NULL,description text NOT NULL,hours text NOT NULL);
+CREATE TABLE accounts (id text PRIMARY KEY,name text NOT NULL,email text UNIQUE NOT NULL,password text NOT NULL,role text NOT NULL CHECK(role IN ('user','staff','admin')),institution_id text REFERENCES institutions,enabled boolean NOT NULL DEFAULT true,must_change boolean NOT NULL DEFAULT false,CHECK((role='staff')=(institution_id IS NOT NULL)));
+CREATE TABLE sessions (token text PRIMARY KEY, account_id text NOT NULL REFERENCES accounts,expires timestamptz NOT NULL);
+CREATE TABLE items (id text PRIMARY KEY,institution_id text NOT NULL REFERENCES institutions,category text NOT NULL, summary text NOT NULL,found_date date NOT NULL,location text NOT NULL,description text NOT NULL,evidence text NOT NULL,storage text NOT NULL,status text NOT NULL DEFAULT 'available' CHECK(status IN ('available','returning','returned')));
+CREATE TABLE losses (id text PRIMARY KEY,user_id text NOT NULL REFERENCES accounts,institution_id text NOT NULL REFERENCES institutions,category text NOT NULL,start_date date NOT NULL,end_date date NOT NULL,location text NOT NULL,description text NOT NULL,active boolean NOT NULL,CHECK(start_date<=end_date));
+CREATE TABLE claims (id text PRIMARY KEY,user_id text NOT NULL REFERENCES accounts,item_id text NOT NULL REFERENCES items,loss_id text REFERENCES losses,description text NOT NULL,response text NOT NULL DEFAULT '',status text NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected','cancelled','completed')),created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
+CREATE UNIQUE INDEX single_approval ON claims(item_id) WHERE status='approved';
+CREATE UNIQUE INDEX single_active_claim ON claims(item_id,user_id) WHERE status IN ('pending','approved');
+CREATE TABLE notices (id text PRIMARY KEY,user_id text NOT NULL REFERENCES accounts,loss_id text NOT NULL REFERENCES losses,item_id text NOT NULL REFERENCES items,read boolean NOT NULL DEFAULT false,created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(loss_id,item_id));
+CREATE TABLE history (id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,item_id text NOT NULL REFERENCES items,claim_id text REFERENCES claims,actor_id text NOT NULL REFERENCES accounts,label text NOT NULL,at timestamptz DEFAULT now());
+CREATE TABLE admin_history (id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,actor_id text NOT NULL REFERENCES accounts,target_id text NOT NULL,action text NOT NULL,at timestamptz DEFAULT now());
+CREATE INDEX item_catalog ON items(institution_id,status,category,found_date);
+CREATE INDEX loss_match ON losses(institution_id,category,start_date,end_date) WHERE active;
+CREATE INDEX claim_item ON claims(item_id);
+CREATE INDEX history_item ON history(item_id,at DESC);

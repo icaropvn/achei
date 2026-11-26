@@ -1,0 +1,35 @@
+{
+  "name": "achei-v1",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "npm run test --prefix frontend",
+    "build": "npm run build --prefix frontend && tsc",
+    "start": "node dist/main.js",
+    "manage": "node dist/manage.js",
+    "test:integration": "node tests/integration.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/rate-limit": "^11.3.0",
+    "@fastify/static": "^11.0.0",
+    "argon2": "^0.45.2",
+    "fastify": "^5.12.8",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.11",
+    "@types/pg": "^8.23.1",
+    "embedded-postgres": "17.12.0-beta.19",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

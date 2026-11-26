@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: achei
+      POSTGRES_USER: achei
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD no .env}
+    volumes:
+      - achei_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "achei", "-d", "achei"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  migrate:
+    build: .
+    command: ["node", "dist/manage.js", "migrate"]
+    environment:
+      PGHOST: db
+      PGDATABASE: achei
+      PGUSER: achei
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+  app:
+    build: .
+    environment:
+      PGHOST: db
+      PGDATABASE: achei
+      PGUSER: achei
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:8080}
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/api/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 4s
+      retries: 5
+volumes:
+  achei_data:
